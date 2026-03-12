@@ -228,17 +228,17 @@ export function PreviewBrowserContainer({
     [effectiveUrl, urlInfo?.url]
   );
   const devServerPort = useMemo(() => {
+    if (effectiveParsedUrl) {
+      return getTargetDevPort(
+        effectiveParsedUrl,
+        previewProxyPort ?? undefined
+      );
+    }
     if (urlInfo?.port != null) {
       return String(urlInfo.port);
     }
-    if (!effectiveParsedUrl) {
-      return null;
-    }
-    return (
-      effectiveParsedUrl.port ||
-      (effectiveParsedUrl.protocol === 'https:' ? '443' : '80')
-    );
-  }, [urlInfo?.port, effectiveParsedUrl]);
+    return null;
+  }, [effectiveParsedUrl, previewProxyPort, urlInfo?.port]);
 
   // Builds the subdomain-based proxy URL loaded by the iframe.
   //   Dev server at localhost:4000 → iframe loads http://4000.localhost:{proxyPort}/path
