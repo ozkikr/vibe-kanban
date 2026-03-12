@@ -376,16 +376,12 @@ export function PreviewBrowserContainer({
       return stripPreviewRefreshParam(navigation.url) ?? navigation.url;
     }
 
-    if (!previewProxyPort) {
-      return null;
-    }
-
     if (!devServerPort) {
       return null;
     }
 
     return transformProxyUrlToDevUrl(navigation.url, devServerPort);
-  }, [devServerPort, hostId, navigation?.url, previewProxyPort]);
+  }, [devServerPort, hostId, navigation?.url]);
   const currentPreviewUrl = navigationDisplayUrl ?? defaultDisplayUrl ?? null;
 
   const handleBridgeMessage = useCallback(
@@ -706,18 +702,22 @@ export function PreviewBrowserContainer({
     }
 
     const baseUrl = currentPreviewUrl ?? defaultDisplayUrl ?? undefined;
-    const normalizedInput = normalizePreviewUrl(trimmed, baseUrl);
-    if (!normalizedInput) {
+    const normalizedInputUrl = parsePreviewUrl(trimmed, baseUrl);
+    if (!normalizedInputUrl) {
       return;
     }
-    const normalizedInputParsed = new URL(normalizedInput);
+    const normalizedInput = normalizedInputUrl.toString();
     const normalizedInputDevPort = getTargetDevPort(
-      normalizedInputParsed,
+      normalizedInputUrl,
       previewProxyPort
     );
     const normalizedInputDevUrl =
       transformProxyUrlToDevUrl(normalizedInput, normalizedInputDevPort) ??
       normalizedInput;
+    const normalizedInputDevParsed = parsePreviewUrl(normalizedInputDevUrl);
+    if (!normalizedInputDevParsed) {
+      return;
+    }
 
     urlInputRef.current?.blur();
     const normalizedCurrentUrl = currentPreviewUrl
@@ -733,20 +733,18 @@ export function PreviewBrowserContainer({
     resetNavigation();
 
     if (showIframe && iframeRef.current?.contentWindow && previewProxyPort) {
-      try {
-        const parsed = new URL(normalizedInputDevUrl);
-        const targetDevPort = getTargetDevPort(parsed, previewProxyPort);
-
-        if (devServerPort != null && targetDevPort === devServerPort) {
-          const proxyPath = parsed.pathname + parsed.search + parsed.hash;
-          const hostToken =
-            hostId != null ? `${targetDevPort}--${hostId}` : targetDevPort;
-          const proxyUrl = `http://${hostToken}.localhost:${previewProxyPort}${proxyPath}`;
-          bridgeRef.current?.navigateTo(proxyUrl);
-          return;
-        }
-      } catch {
-        // fall through to iframe src change
+      if (devServerPort != null && normalizedInputDevPort === devServerPort) {
+        const proxyPath =
+          normalizedInputDevParsed.pathname +
+          normalizedInputDevParsed.search +
+          normalizedInputDevParsed.hash;
+        const hostToken =
+          hostId != null
+            ? `${normalizedInputDevPort}--${hostId}`
+            : normalizedInputDevPort;
+        const proxyUrl = `http://${hostToken}.localhost:${previewProxyPort}${proxyPath}`;
+        bridgeRef.current?.navigateTo(proxyUrl);
+        return;
       }
     }
 
