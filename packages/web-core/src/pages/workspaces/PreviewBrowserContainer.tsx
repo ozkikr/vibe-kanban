@@ -93,7 +93,10 @@ function stripPreviewRefreshParam(rawUrl: string): string | null {
  * Proxy format: http://{devPort}.localhost:{proxyPort}{path}?_refresh=...
  * Dev format:   http://localhost:{devPort}{path}
  */
-function transformProxyUrlToDevUrl(proxyUrl: string): string | null {
+function transformProxyUrlToDevUrl(
+  proxyUrl: string,
+  devPort: string
+): string | null {
   try {
     const url = new URL(proxyUrl);
 
@@ -102,12 +105,6 @@ function transformProxyUrlToDevUrl(proxyUrl: string): string | null {
       hostnameParts.length < 2 ||
       !hostnameParts.slice(1).join('.').startsWith('localhost')
     ) {
-      return null;
-    }
-
-    const portToken = hostnameParts[0];
-    const devPort = portToken.split('--')[0];
-    if (!/^\d+$/.test(devPort)) {
       return null;
     }
 
@@ -124,8 +121,7 @@ function transformProxyUrlToDevUrl(proxyUrl: string): string | null {
       devUrl.hash = url.hash;
     }
 
-    const portNum = parseInt(devPort, 10);
-    if (portNum !== 80) {
+    if (devPort !== '80') {
       devUrl.port = devPort;
     }
 
@@ -384,8 +380,12 @@ export function PreviewBrowserContainer({
       return null;
     }
 
-    return transformProxyUrlToDevUrl(navigation.url);
-  }, [hostId, navigation?.url, previewProxyPort]);
+    if (!devServerPort) {
+      return null;
+    }
+
+    return transformProxyUrlToDevUrl(navigation.url, devServerPort);
+  }, [devServerPort, hostId, navigation?.url, previewProxyPort]);
   const currentPreviewUrl = navigationDisplayUrl ?? defaultDisplayUrl ?? null;
 
   const handleBridgeMessage = useCallback(
@@ -710,8 +710,14 @@ export function PreviewBrowserContainer({
     if (!normalizedInput) {
       return;
     }
+    const normalizedInputParsed = new URL(normalizedInput);
+    const normalizedInputDevPort = getTargetDevPort(
+      normalizedInputParsed,
+      previewProxyPort
+    );
     const normalizedInputDevUrl =
-      transformProxyUrlToDevUrl(normalizedInput) ?? normalizedInput;
+      transformProxyUrlToDevUrl(normalizedInput, normalizedInputDevPort) ??
+      normalizedInput;
 
     urlInputRef.current?.blur();
     const normalizedCurrentUrl = currentPreviewUrl
