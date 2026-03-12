@@ -205,7 +205,6 @@ fn preview_api_target_path(target_port: u16, path: &str, query: &str) -> String 
 }
 
 fn relay_preview_target_url(
-    backend_host: &str,
     backend_port: u16,
     host_id: Uuid,
     target_port: u16,
@@ -214,30 +213,11 @@ fn relay_preview_target_url(
     scheme: &str,
 ) -> Option<String> {
     let relay_path = preview_api_target_path(target_port, normalized_path, query_string);
-    let normalized_backend_host = normalize_backend_host_for_internal_hop(backend_host);
-    let backend_authority = format_host_authority(&normalized_backend_host);
 
     Some(format!(
-        "{scheme}://{backend_authority}:{backend_port}/api/host/{host_id}/{}",
+        "{scheme}://127.0.0.1:{backend_port}/api/host/{host_id}/{}",
         relay_path.trim_start_matches("/api/")
     ))
-}
-
-fn normalize_backend_host_for_internal_hop(backend_host: &str) -> String {
-    let trimmed = backend_host.trim();
-    match trimmed {
-        "0.0.0.0" => "127.0.0.1".to_string(),
-        "::" | "[::]" => "::1".to_string(),
-        _ => trimmed.to_string(),
-    }
-}
-
-fn format_host_authority(host: &str) -> String {
-    if host.contains(':') && !host.starts_with('[') && !host.ends_with(']') {
-        format!("[{host}]")
-    } else {
-        host.to_string()
-    }
 }
 
 fn rewrite_redirect_like_header_value(
@@ -392,7 +372,6 @@ fn extract_target_from_host(headers: &HeaderMap) -> Option<PreviewTarget> {
 
 pub async fn proxy_subdomain_request(
     service: &PreviewProxyService,
-    backend_host: &str,
     backend_port: u16,
     proxy_port: u16,
     request: Request,
@@ -406,21 +385,11 @@ pub async fn proxy_subdomain_request(
 
     let path = normalized_proxy_path(request.uri().path()).to_string();
 
-    proxy_impl(
-        service,
-        backend_host,
-        backend_port,
-        proxy_port,
-        target,
-        path,
-        request,
-    )
-    .await
+    proxy_impl(service, backend_port, proxy_port, target, path, request).await
 }
 
 async fn proxy_impl(
     service: &PreviewProxyService,
-    backend_host: &str,
     backend_port: u16,
     proxy_port: u16,
     target: PreviewTarget,
@@ -441,7 +410,6 @@ async fn proxy_impl(
             path_str,
             target.port
         );
-        let backend_host_owned = backend_host.to_string();
 
         let ws = if let Some(ref protocols) = ws_protocols {
             let protocol_list: Vec<String> =
@@ -454,7 +422,6 @@ async fn proxy_impl(
         return ws
             .on_upgrade(move |client_socket| async move {
                 if let Err(e) = handle_ws_proxy(
-                    &backend_host_owned,
                     backend_port,
                     client_socket,
                     target,
@@ -471,21 +438,11 @@ async fn proxy_impl(
     }
 
     let request = Request::from_parts(parts, body);
-    http_proxy_handler(
-        service,
-        backend_host,
-        backend_port,
-        proxy_port,
-        target,
-        path_str,
-        request,
-    )
-    .await
+    http_proxy_handler(service, backend_port, proxy_port, target, path_str, request).await
 }
 
 async fn http_proxy_handler(
     service: &PreviewProxyService,
-    backend_host: &str,
     backend_port: u16,
     proxy_port: u16,
     target: PreviewTarget,
@@ -512,7 +469,6 @@ async fn http_proxy_handler(
     };
     let target_url = if let Some(host_id) = target.relay_host_id {
         let Some(url) = relay_preview_target_url(
-            backend_host,
             backend_port,
             host_id,
             target.port,
@@ -762,7 +718,6 @@ async fn http_proxy_handler(
 }
 
 async fn handle_ws_proxy(
-    backend_host: &str,
     backend_port: u16,
     client_socket: axum::extract::ws::WebSocket,
     target: PreviewTarget,
@@ -774,7 +729,6 @@ async fn handle_ws_proxy(
     let query = query_string.as_deref().unwrap_or_default();
     let ws_url = if let Some(host_id) = target.relay_host_id {
         relay_preview_target_url(
-            backend_host,
             backend_port,
             host_id,
             target.port,

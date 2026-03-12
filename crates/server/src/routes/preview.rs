@@ -62,14 +62,6 @@ async fn subdomain_proxy_request(
     State(deployment): State<DeploymentImpl>,
     request: Request,
 ) -> Response {
-    let Some(backend_host) = deployment.client_info().get_hostname() else {
-        return (
-            StatusCode::BAD_REQUEST,
-            "Local backend hostname is not available",
-        )
-            .into_response();
-    };
-
     let Some(backend_port) = deployment.client_info().get_port() else {
         return (
             StatusCode::BAD_REQUEST,
@@ -88,7 +80,6 @@ async fn subdomain_proxy_request(
 
     preview_proxy::proxy_subdomain_request(
         deployment.preview_proxy(),
-        &backend_host,
         backend_port,
         proxy_port,
         request,
