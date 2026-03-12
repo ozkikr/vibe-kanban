@@ -240,8 +240,6 @@ export function PreviewBrowserContainer({
   // effectiveUrl:       The override URL (if set) or the auto-detected dev server URL.
   // urlInputValue:      Local state for the URL bar text. Decoupled from effectiveUrl
   //                     so that external URL changes don't disrupt the user while typing.
-  // prevDefaultDisplayUrlRef: Tracks the previous display URL so the sync effect can detect
-  //                     when it changes (new URL detected or override toggled).
   // Use override URL if set, otherwise fall back to auto-detected
   const effectiveUrl = hasOverride ? overrideUrl : urlInfo?.url;
   const effectiveParsedUrl = useMemo(
@@ -319,13 +317,6 @@ export function PreviewBrowserContainer({
 
   const urlInputRef = useRef<HTMLInputElement>(null);
   const [urlInputValue, setUrlInputValue] = useState(effectiveUrl ?? '');
-  const defaultDisplayUrl = useMemo(() => {
-    if (hostId != null && iframeUrl) {
-      return stripPreviewRefreshParam(iframeUrl) ?? iframeUrl;
-    }
-    return effectiveUrl ?? null;
-  }, [effectiveUrl, hostId, iframeUrl]);
-  const prevDefaultDisplayUrlRef = useRef(defaultDisplayUrl);
 
   // ─── Iframe Display Timing ──────────────────────────────────────────────────
   // Controls when the iframe becomes visible after URL detection.
@@ -349,14 +340,12 @@ export function PreviewBrowserContainer({
   // For local previews we show a localhost dev URL in the URL bar.
   // For host-scoped previews we keep showing the proxy URL.
   //
-  // navigationDisplayUrl = best-known current URL from iframe navigation.
-  // currentPreviewUrl = navigationDisplayUrl fallback to default display URL.
+  // displayedPreviewUrl = best-known URL shown in toolbar/copy/open actions.
+  // Priority: iframe navigation (if present) then fallback URL.
   //
-  // navigationDevUrl transforms proxy URLs back to dev URLs:
+  // For local mode, navigation proxy URLs are transformed back to localhost URLs:
   //   proxy:  http://4000.localhost:{proxyPort}/path
   //   dev:    http://localhost:4000/path
-  //
-  // This is used for local (non-host-scoped) display.
   // Eruda DevTools state
   const [isErudaVisible, setIsErudaVisible] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -367,22 +356,28 @@ export function PreviewBrowserContainer({
     reset: resetNavigation,
   } = usePreviewNavigation();
   const bridgeRef = useRef<PreviewDevToolsBridge | null>(null);
-  const navigationDisplayUrl = useMemo(() => {
-    if (!navigation?.url) {
-      return null;
+  const displayedPreviewUrl = useMemo(() => {
+    if (navigation?.url) {
+      if (hostId != null) {
+        return stripPreviewRefreshParam(navigation.url) ?? navigation.url;
+      }
+      if (devServerPort) {
+        const transformed = transformProxyUrlToDevUrl(
+          navigation.url,
+          devServerPort
+        );
+        if (transformed) {
+          return transformed;
+        }
+      }
     }
 
-    if (hostId != null) {
-      return stripPreviewRefreshParam(navigation.url) ?? navigation.url;
+    if (hostId != null && iframeUrl) {
+      return stripPreviewRefreshParam(iframeUrl) ?? iframeUrl;
     }
 
-    if (!devServerPort) {
-      return null;
-    }
-
-    return transformProxyUrlToDevUrl(navigation.url, devServerPort);
-  }, [devServerPort, hostId, navigation?.url]);
-  const currentPreviewUrl = navigationDisplayUrl ?? defaultDisplayUrl ?? null;
+    return effectiveUrl ?? null;
+  }, [devServerPort, effectiveUrl, hostId, iframeUrl, navigation?.url]);
 
   const handleBridgeMessage = useCallback(
     (message: PreviewDevToolsMessage) => {
@@ -392,11 +387,9 @@ export function PreviewBrowserContainer({
   );
 
   // ─── URL Sync Effect ──────────────────────────────────────────────────────
-  // Keeps urlInputValue in sync with navigation/default display URL. Priority:
+  // Keeps urlInputValue in sync with displayed preview URL.
   //   1. Skip if input is focused (user is typing)
-  //   2. Prefer navigationDisplayUrl (iframe reported this URL via postMessage)
-  //   3. Use defaultDisplayUrl if it changed
-  //   4. Fallback: set to defaultDisplayUrl (catch-all for initial render, etc.)
+  //   2. Use displayedPreviewUrl otherwise
   //
   // NOTE: After resetNavigation() in handleUrlSubmit, there's a brief flash
   // where the URL bar shows the old URL before the iframe reports the new URL.
@@ -407,19 +400,8 @@ export function PreviewBrowserContainer({
       return;
     }
 
-    if (navigationDisplayUrl) {
-      setUrlInputValue(navigationDisplayUrl);
-      return;
-    }
-
-    if (prevDefaultDisplayUrlRef.current !== defaultDisplayUrl) {
-      prevDefaultDisplayUrlRef.current = defaultDisplayUrl;
-      setUrlInputValue(defaultDisplayUrl ?? '');
-      return;
-    }
-
-    setUrlInputValue(defaultDisplayUrl ?? '');
-  }, [defaultDisplayUrl, navigation?.url, navigationDisplayUrl]);
+    setUrlInputValue(displayedPreviewUrl ?? '');
+  }, [displayedPreviewUrl]);
 
   useEffect(() => {
     bridgeRef.current = new PreviewDevToolsBridge(
@@ -701,7 +683,7 @@ export function PreviewBrowserContainer({
       return;
     }
 
-    const baseUrl = currentPreviewUrl ?? defaultDisplayUrl ?? undefined;
+    const baseUrl = displayedPreviewUrl ?? undefined;
     const normalizedInputUrl = parsePreviewUrl(trimmed, baseUrl);
     if (!normalizedInputUrl) {
       return;
@@ -720,8 +702,8 @@ export function PreviewBrowserContainer({
     }
 
     urlInputRef.current?.blur();
-    const normalizedCurrentUrl = currentPreviewUrl
-      ? normalizePreviewUrl(currentPreviewUrl, baseUrl)
+    const normalizedCurrentUrl = displayedPreviewUrl
+      ? normalizePreviewUrl(displayedPreviewUrl, baseUrl)
       : null;
     if (normalizedCurrentUrl && normalizedInput === normalizedCurrentUrl) {
       if (hasOverride) {
@@ -751,10 +733,9 @@ export function PreviewBrowserContainer({
     setOverrideUrl(normalizedInputDevUrl);
     setImmediateLoad(true);
   }, [
-    defaultDisplayUrl,
     devServerPort,
     urlInputValue,
-    currentPreviewUrl,
+    displayedPreviewUrl,
     hostId,
     hasOverride,
     showIframe,
@@ -767,9 +748,9 @@ export function PreviewBrowserContainer({
   // handleUrlEscape: reverts URL bar to the current page URL and blurs,
   // discarding whatever the user typed.
   const handleUrlEscape = useCallback(() => {
-    setUrlInputValue(currentPreviewUrl ?? '');
+    setUrlInputValue(displayedPreviewUrl ?? '');
     urlInputRef.current?.blur();
-  }, [currentPreviewUrl]);
+  }, [displayedPreviewUrl]);
 
   const handleStart = useCallback(() => {
     start();
@@ -841,28 +822,22 @@ export function PreviewBrowserContainer({
   }, [isErudaVisible, sendErudaCommand]);
 
   const handleCopyUrl = useCallback(async () => {
-    if (!currentPreviewUrl) return;
+    if (!displayedPreviewUrl) return;
 
-    const normalizedUrl = normalizePreviewUrl(
-      currentPreviewUrl,
-      defaultDisplayUrl ?? undefined
-    );
+    const normalizedUrl = normalizePreviewUrl(displayedPreviewUrl);
     if (normalizedUrl) {
       await navigator.clipboard.writeText(normalizedUrl);
     }
-  }, [currentPreviewUrl, defaultDisplayUrl]);
+  }, [displayedPreviewUrl]);
 
   const handleOpenInNewTab = useCallback(() => {
-    if (!currentPreviewUrl) return;
+    if (!displayedPreviewUrl) return;
 
-    const normalizedUrl = normalizePreviewUrl(
-      currentPreviewUrl,
-      defaultDisplayUrl ?? undefined
-    );
+    const normalizedUrl = normalizePreviewUrl(displayedPreviewUrl);
     if (normalizedUrl) {
       window.open(normalizedUrl, '_blank');
     }
-  }, [currentPreviewUrl, defaultDisplayUrl]);
+  }, [displayedPreviewUrl]);
 
   const handleScreenSizeChange = useCallback(
     (size: ScreenSize) => {
