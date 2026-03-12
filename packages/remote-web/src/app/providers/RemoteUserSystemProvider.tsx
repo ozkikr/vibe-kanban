@@ -39,6 +39,7 @@ export function RemoteUserSystemProvider({
 
   const config = userSystemInfo?.config || null;
   const appVersion = userSystemInfo?.version || null;
+  const previewProxyPort = userSystemInfo?.preview_proxy_port || null;
   const environment = userSystemInfo?.environment || null;
   const analyticsUserId = userSystemInfo?.analytics_user_id || null;
   const loginStatus = userSystemInfo?.login_status || null;
@@ -148,6 +149,7 @@ export function RemoteUserSystemProvider({
     () => ({
       system: {
         appVersion,
+        previewProxyPort,
         config,
         environment,
         profiles,
@@ -156,6 +158,7 @@ export function RemoteUserSystemProvider({
         loginStatus,
       },
       appVersion,
+      previewProxyPort,
       config,
       environment,
       profiles,
@@ -173,6 +176,7 @@ export function RemoteUserSystemProvider({
     }),
     [
       appVersion,
+      previewProxyPort,
       config,
       environment,
       profiles,

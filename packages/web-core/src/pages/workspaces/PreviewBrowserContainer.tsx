@@ -6,8 +6,6 @@ import {
   useRef,
   useMemo,
 } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { configApi } from '@/shared/lib/api';
 import {
   PreviewBrowser,
   MOBILE_WIDTH,
@@ -24,6 +22,7 @@ import {
 import { useLogStream } from '@/shared/hooks/useLogStream';
 import { useUiPreferencesStore } from '@/shared/stores/useUiPreferencesStore';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
+import { useUserSystem } from '@/shared/hooks/useUserSystem';
 import { useHostId } from '@/shared/providers/HostIdProvider';
 import { ScriptFixerDialog } from '@/shared/dialogs/scripts/ScriptFixerDialog';
 import { usePreviewNavigation } from '@/shared/hooks/usePreviewNavigation';
@@ -170,29 +169,8 @@ export function PreviewBrowserContainer({
     (s) => s.triggerPreviewRefresh
   );
   const { repos, workspaceId: activeWorkspaceId } = useWorkspaceContext();
+  const { previewProxyPort } = useUserSystem();
   const hostId = useHostId();
-
-  // Get preview proxy port for security isolation
-  const { data: systemInfo } = useQuery({
-    queryKey: ['user-system'],
-    queryFn: configApi.getConfig,
-    staleTime: 5 * 60 * 1000,
-  });
-  const { data: localPreviewProxyPort } = useQuery({
-    queryKey: ['local-preview-proxy-port'],
-    queryFn: async () => {
-      const response = await fetch('/api/info', { cache: 'no-store' });
-      if (!response.ok) return null;
-      const body = await response.json();
-      return body?.data?.preview_proxy_port ?? null;
-    },
-    enabled: hostId != null,
-    staleTime: 5 * 60 * 1000,
-  });
-  const previewProxyPort =
-    hostId != null
-      ? (localPreviewProxyPort ?? systemInfo?.preview_proxy_port)
-      : systemInfo?.preview_proxy_port;
 
   const {
     start,
@@ -691,7 +669,7 @@ export function PreviewBrowserContainer({
     const normalizedInput = normalizedInputUrl.toString();
     const normalizedInputDevPort = getTargetDevPort(
       normalizedInputUrl,
-      previewProxyPort
+      previewProxyPort ?? undefined
     );
     const normalizedInputDevUrl =
       transformProxyUrlToDevUrl(normalizedInput, normalizedInputDevPort) ??

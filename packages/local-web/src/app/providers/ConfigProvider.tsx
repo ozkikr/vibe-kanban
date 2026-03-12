@@ -30,6 +30,7 @@ export function UserSystemProvider({ children }: UserSystemProviderProps) {
 
   const config = userSystemInfo?.config || null;
   const appVersion = userSystemInfo?.version || null;
+  const previewProxyPort = userSystemInfo?.preview_proxy_port || null;
   const environment = userSystemInfo?.environment || null;
   const analyticsUserId = userSystemInfo?.analytics_user_id || null;
   const loginStatus = userSystemInfo?.login_status || null;
@@ -145,6 +146,7 @@ export function UserSystemProvider({ children }: UserSystemProviderProps) {
     () => ({
       system: {
         appVersion,
+        previewProxyPort,
         config,
         environment,
         profiles,
@@ -153,6 +155,7 @@ export function UserSystemProvider({ children }: UserSystemProviderProps) {
         loginStatus,
       },
       appVersion,
+      previewProxyPort,
       config,
       environment,
       profiles,
@@ -170,6 +173,7 @@ export function UserSystemProvider({ children }: UserSystemProviderProps) {
     }),
     [
       appVersion,
+      previewProxyPort,
       config,
       environment,
       profiles,
