@@ -3,6 +3,8 @@ export type AppDestination =
   | { kind: 'onboarding' }
   | { kind: 'onboarding-sign-in' }
   | { kind: 'migrate' }
+  | { kind: 'apps' }
+  | { kind: 'app-detail'; appId: string }
   | { kind: 'workspaces'; hostId?: string }
   | { kind: 'workspaces-create'; hostId?: string }
   | { kind: 'workspace'; workspaceId: string; hostId?: string }
@@ -44,6 +46,8 @@ export interface AppNavigation {
   goToOnboarding(transition?: NavigationTransition): void;
   goToOnboardingSignIn(transition?: NavigationTransition): void;
   goToMigrate(transition?: NavigationTransition): void;
+  goToApps(transition?: NavigationTransition): void;
+  goToApp(appId: string, transition?: NavigationTransition): void;
   goToWorkspaces(transition?: NavigationTransition): void;
   goToWorkspacesCreate(transition?: NavigationTransition): void;
   goToWorkspace(workspaceId: string, transition?: NavigationTransition): void;

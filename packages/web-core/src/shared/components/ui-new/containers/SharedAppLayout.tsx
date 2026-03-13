@@ -2,7 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DropResult } from '@hello-pangea/dnd';
 import { Outlet } from '@tanstack/react-router';
 import { siDiscord, siGithub } from 'simple-icons';
-import { XIcon, PlusIcon, LayoutIcon, KanbanIcon } from '@phosphor-icons/react';
+import {
+  XIcon,
+  PlusIcon,
+  LayoutIcon,
+  KanbanIcon,
+  SquaresFourIcon,
+} from '@phosphor-icons/react';
 import { SyncErrorProvider } from '@/shared/providers/SyncErrorProvider';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { useUiPreferencesStore } from '@/shared/stores/useUiPreferencesStore';
@@ -50,6 +56,9 @@ export function SharedAppLayout() {
   const appNavigation = useAppNavigation();
   const currentDestination = useCurrentAppDestination();
   const isMigrateRoute = currentDestination?.kind === 'migrate';
+  const isAppsRoute =
+    currentDestination?.kind === 'apps' ||
+    currentDestination?.kind === 'app-detail';
   const isMobile = useIsMobile();
   const mobileFontScale = useUiPreferencesStore((s) => s.mobileFontScale);
   const isLeftSidebarVisible = useUiPreferencesStore(
@@ -136,7 +145,7 @@ export function SharedAppLayout() {
   // Navigate to the first ordered project when org changes
   useEffect(() => {
     // Skip auto-navigation when on migration flow
-    if (isMigrateRoute) {
+    if (isMigrateRoute || isAppsRoute) {
       prevOrgIdRef.current = selectedOrgId;
       return;
     }
@@ -156,7 +165,14 @@ export function SharedAppLayout() {
     } else if (prevOrgIdRef.current === null && selectedOrgId) {
       prevOrgIdRef.current = selectedOrgId;
     }
-  }, [selectedOrgId, sortedProjects, isLoading, isMigrateRoute, appNavigation]);
+  }, [
+    selectedOrgId,
+    sortedProjects,
+    isLoading,
+    isMigrateRoute,
+    isAppsRoute,
+    appNavigation,
+  ]);
 
   // Navigation state for AppBar active indicators
   const projectDestination = useMemo(
@@ -164,6 +180,9 @@ export function SharedAppLayout() {
     [currentDestination]
   );
   const isWorkspacesActive = isWorkspacesDestination(currentDestination);
+  const isAppsActive =
+    currentDestination?.kind === 'apps' ||
+    currentDestination?.kind === 'app-detail';
   const isWorkspaceSidebarPreviewEnabled =
     !isMobile && isWorkspacesActive && !isLeftSidebarVisible;
   const activeProjectId = projectDestination?.projectId ?? null;
@@ -184,6 +203,10 @@ export function SharedAppLayout() {
 
   const handleWorkspacesClick = useCallback(() => {
     appNavigation.goToWorkspaces();
+  }, [appNavigation]);
+
+  const handleAppsClick = useCallback(() => {
+    appNavigation.goToApps();
   }, [appNavigation]);
 
   const handleProjectClick = useCallback(
@@ -297,10 +320,12 @@ export function SharedAppLayout() {
             projects={orderedProjects}
             onCreateProject={handleCreateProject}
             onWorkspacesClick={handleWorkspacesClick}
+            onAppsClick={handleAppsClick}
             onProjectClick={handleProjectClick}
             onProjectsDragEnd={handleProjectsDragEnd}
             isSavingProjectOrder={isSavingProjectOrder}
             isWorkspacesActive={isWorkspacesActive}
+            isAppsActive={isAppsActive}
             activeProjectId={activeProjectId}
             isSignedIn={isSignedIn}
             isLoadingProjects={isLoading}
@@ -356,6 +381,22 @@ export function SharedAppLayout() {
             >
               <LayoutIcon className="h-4 w-4" />
               Workspaces
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                appNavigation.goToApps();
+                setIsDrawerOpen(false);
+              }}
+              className={cn(
+                'flex items-center gap-2 px-4 py-3 text-sm cursor-pointer',
+                isAppsActive
+                  ? 'bg-brand/10 text-high'
+                  : 'text-normal hover:bg-secondary'
+              )}
+            >
+              <SquaresFourIcon className="h-4 w-4" />
+              Apps
             </button>
 
             {/* Divider */}

@@ -15,11 +15,13 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as OnboardingSignInRouteImport } from './routes/onboarding_.sign-in'
 import { Route as AppWorkspacesRouteImport } from './routes/_app.workspaces'
 import { Route as AppMigrateRouteImport } from './routes/_app.migrate'
+import { Route as AppAppsRouteImport } from './routes/_app.apps'
 import { Route as WorkspacesWorkspaceIdVscodeRouteImport } from './routes/workspaces.$workspaceId.vscode'
 import { Route as AppWorkspacesElectricTestRouteImport } from './routes/_app.workspaces_.electric-test'
 import { Route as AppWorkspacesCreateRouteImport } from './routes/_app.workspaces_.create'
 import { Route as AppWorkspacesWorkspaceIdRouteImport } from './routes/_app.workspaces_.$workspaceId'
 import { Route as AppProjectsProjectIdRouteImport } from './routes/_app.projects.$projectId'
+import { Route as AppAppsAppIdRouteImport } from './routes/_app.apps.$appId'
 import { Route as AppProjectsProjectIdIssuesIssueIdRouteImport } from './routes/_app.projects.$projectId_.issues.$issueId'
 import { Route as AppProjectsProjectIdWorkspacesCreateDraftIdRouteImport } from './routes/_app.projects.$projectId_.workspaces.create.$draftId'
 import { Route as AppProjectsProjectIdIssuesIssueIdWorkspacesWorkspaceIdRouteImport } from './routes/_app.projects.$projectId_.issues.$issueId_.workspaces.$workspaceId'
@@ -54,6 +56,11 @@ const AppMigrateRoute = AppMigrateRouteImport.update({
   path: '/migrate',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAppsRoute = AppAppsRouteImport.update({
+  id: '/apps',
+  path: '/apps',
+  getParentRoute: () => AppRoute,
+} as any)
 const WorkspacesWorkspaceIdVscodeRoute =
   WorkspacesWorkspaceIdVscodeRouteImport.update({
     id: '/workspaces/$workspaceId/vscode',
@@ -81,6 +88,11 @@ const AppProjectsProjectIdRoute = AppProjectsProjectIdRouteImport.update({
   id: '/projects/$projectId',
   path: '/projects/$projectId',
   getParentRoute: () => AppRoute,
+} as any)
+const AppAppsAppIdRoute = AppAppsAppIdRouteImport.update({
+  id: '/$appId',
+  path: '/$appId',
+  getParentRoute: () => AppAppsRoute,
 } as any)
 const AppProjectsProjectIdIssuesIssueIdRoute =
   AppProjectsProjectIdIssuesIssueIdRouteImport.update({
@@ -110,9 +122,11 @@ const AppProjectsProjectIdIssuesIssueIdWorkspacesCreateDraftIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/onboarding': typeof OnboardingRoute
+  '/apps': typeof AppAppsRouteWithChildren
   '/migrate': typeof AppMigrateRoute
   '/workspaces': typeof AppWorkspacesRoute
   '/onboarding/sign-in': typeof OnboardingSignInRoute
+  '/apps/$appId': typeof AppAppsAppIdRoute
   '/projects/$projectId': typeof AppProjectsProjectIdRoute
   '/workspaces/$workspaceId': typeof AppWorkspacesWorkspaceIdRoute
   '/workspaces/create': typeof AppWorkspacesCreateRoute
@@ -126,9 +140,11 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/onboarding': typeof OnboardingRoute
+  '/apps': typeof AppAppsRouteWithChildren
   '/migrate': typeof AppMigrateRoute
   '/workspaces': typeof AppWorkspacesRoute
   '/onboarding/sign-in': typeof OnboardingSignInRoute
+  '/apps/$appId': typeof AppAppsAppIdRoute
   '/projects/$projectId': typeof AppProjectsProjectIdRoute
   '/workspaces/$workspaceId': typeof AppWorkspacesWorkspaceIdRoute
   '/workspaces/create': typeof AppWorkspacesCreateRoute
@@ -144,9 +160,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/onboarding': typeof OnboardingRoute
+  '/_app/apps': typeof AppAppsRouteWithChildren
   '/_app/migrate': typeof AppMigrateRoute
   '/_app/workspaces': typeof AppWorkspacesRoute
   '/onboarding_/sign-in': typeof OnboardingSignInRoute
+  '/_app/apps/$appId': typeof AppAppsAppIdRoute
   '/_app/projects/$projectId': typeof AppProjectsProjectIdRoute
   '/_app/workspaces_/$workspaceId': typeof AppWorkspacesWorkspaceIdRoute
   '/_app/workspaces_/create': typeof AppWorkspacesCreateRoute
@@ -162,9 +180,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/onboarding'
+    | '/apps'
     | '/migrate'
     | '/workspaces'
     | '/onboarding/sign-in'
+    | '/apps/$appId'
     | '/projects/$projectId'
     | '/workspaces/$workspaceId'
     | '/workspaces/create'
@@ -178,9 +198,11 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/onboarding'
+    | '/apps'
     | '/migrate'
     | '/workspaces'
     | '/onboarding/sign-in'
+    | '/apps/$appId'
     | '/projects/$projectId'
     | '/workspaces/$workspaceId'
     | '/workspaces/create'
@@ -195,9 +217,11 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/onboarding'
+    | '/_app/apps'
     | '/_app/migrate'
     | '/_app/workspaces'
     | '/onboarding_/sign-in'
+    | '/_app/apps/$appId'
     | '/_app/projects/$projectId'
     | '/_app/workspaces_/$workspaceId'
     | '/_app/workspaces_/create'
@@ -261,6 +285,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMigrateRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/apps': {
+      id: '/_app/apps'
+      path: '/apps'
+      fullPath: '/apps'
+      preLoaderRoute: typeof AppAppsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/workspaces/$workspaceId/vscode': {
       id: '/workspaces/$workspaceId/vscode'
       path: '/workspaces/$workspaceId/vscode'
@@ -296,6 +327,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProjectsProjectIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/apps/$appId': {
+      id: '/_app/apps/$appId'
+      path: '/$appId'
+      fullPath: '/apps/$appId'
+      preLoaderRoute: typeof AppAppsAppIdRouteImport
+      parentRoute: typeof AppAppsRoute
+    }
     '/_app/projects/$projectId_/issues/$issueId': {
       id: '/_app/projects/$projectId_/issues/$issueId'
       path: '/projects/$projectId/issues/$issueId'
@@ -327,7 +365,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppAppsRouteChildren {
+  AppAppsAppIdRoute: typeof AppAppsAppIdRoute
+}
+
+const AppAppsRouteChildren: AppAppsRouteChildren = {
+  AppAppsAppIdRoute: AppAppsAppIdRoute,
+}
+
+const AppAppsRouteWithChildren =
+  AppAppsRoute._addFileChildren(AppAppsRouteChildren)
+
 interface AppRouteChildren {
+  AppAppsRoute: typeof AppAppsRouteWithChildren
   AppMigrateRoute: typeof AppMigrateRoute
   AppWorkspacesRoute: typeof AppWorkspacesRoute
   AppProjectsProjectIdRoute: typeof AppProjectsProjectIdRoute
@@ -341,6 +391,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAppsRoute: AppAppsRouteWithChildren,
   AppMigrateRoute: AppMigrateRoute,
   AppWorkspacesRoute: AppWorkspacesRoute,
   AppProjectsProjectIdRoute: AppProjectsProjectIdRoute,

@@ -131,6 +131,8 @@ export function NavbarContainer({
     () => getProjectDestination(destination),
     [destination]
   );
+  const isOnAppsPage =
+    destination?.kind === 'apps' || destination?.kind === 'app-detail';
   const isOnProjectPage = projectDestination !== null;
   const projectId = projectDestination?.projectId ?? null;
   const isOnProjectSubRoute =
@@ -197,9 +199,11 @@ export function NavbarContainer({
     ? 'Create Workspace'
     : isMigratePage
       ? 'Migrate'
-      : isOnProjectPage
-        ? orgName
-        : selectedWorkspace?.branch;
+      : isOnAppsPage
+        ? 'Apps'
+        : isOnProjectPage
+          ? orgName
+          : selectedWorkspace?.branch;
 
   // Breadcrumbs: Project / Issue / Workspace (only on workspace pages with linked project)
   const linkedProjectId = linkedRemoteWorkspace?.project_id ?? null;

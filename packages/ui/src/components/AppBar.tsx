@@ -12,6 +12,7 @@ import {
   KanbanIcon,
   SpinnerIcon,
   StarIcon,
+  SquaresFourIcon,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/cn';
 import { AppBarButton } from './AppBarButton';
@@ -51,12 +52,14 @@ interface AppBarProps {
   activeHostId?: string | null;
   onCreateProject: () => void;
   onWorkspacesClick: () => void;
+  onAppsClick?: () => void;
   onHostClick?: (hostId: string, status: AppBarHostStatus) => void;
   showWorkspacesButton?: boolean;
   onProjectClick: (projectId: string) => void;
   onProjectsDragEnd: (result: DropResult) => void;
   isSavingProjectOrder?: boolean;
   isWorkspacesActive: boolean;
+  isAppsActive?: boolean;
   activeProjectId: string | null;
   isSignedIn?: boolean;
   isLoadingProjects?: boolean;
@@ -107,12 +110,14 @@ export function AppBar({
   activeHostId = null,
   onCreateProject,
   onWorkspacesClick,
+  onAppsClick,
   onHostClick,
   showWorkspacesButton = true,
   onProjectClick,
   onProjectsDragEnd,
   isSavingProjectOrder,
   isWorkspacesActive,
+  isAppsActive = false,
   activeProjectId,
   isSignedIn,
   isLoadingProjects,
@@ -153,6 +158,14 @@ export function AppBar({
               label="Workspaces"
               isActive={isWorkspacesActive}
               onClick={onWorkspacesClick}
+            />
+          )}
+          {onAppsClick && (
+            <AppBarButton
+              icon={SquaresFourIcon}
+              label="Apps"
+              isActive={isAppsActive}
+              onClick={onAppsClick}
             />
           )}
           {hosts.map((host) => {
